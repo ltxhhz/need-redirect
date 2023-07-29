@@ -1,0 +1,24 @@
+{
+  "manifest_version": 3,
+  "name": "need redirect",
+  "version": "1.0",
+  "description": "你的插件描述",
+  // "icons": {
+  //   "16": "icon16.png",
+  //   "48": "icon48.png",
+  //   "128": "icon128.png"
+  // },
+  "action": {
+    "default_popup": "src/pages/popup/index.html"
+  },
+  "permissions": [
+    "tabs",
+    "storage"
+  ],
+  "options_page": "src/pages/option/index.html",
+  "content_scripts": [{
+    "matches": ["<all_urls>"],
+    "js": ["scripts/content.js"],
+    "run_at": "document_start"
+  }]
+}
