@@ -13,12 +13,17 @@
   },
   "permissions": [
     "tabs",
-    "storage"
+    "storage",
+    "declarativeNetRequest",
+    "declarativeNetRequestFeedback",
+    "declarativeNetRequestWithHostAccess"
   ],
+  "host_permissions": ["*://*/*"],
   "options_page": "src/pages/option/index.html",
-  "content_scripts": [{
-    "matches": ["<all_urls>"],
-    "js": ["scripts/content.js"],
-    "run_at": "document_start"
-  }]
+  // "content_scripts": [{
+  //   "matches": ["<all_urls>"],
+  //   "js": ["scripts/content.js"],
+  //   "run_at": "document_start"
+  // }]
+  
 }

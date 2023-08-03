@@ -22,13 +22,16 @@
     "paths": {
       "@/*":["./src/*"]
     }
+    // "typeRoots": ["./node_modules/@types","./node_modules/naive-ui/volar.d.ts"]
+    // "types": ["@types/**/*","naive-ui/volar"]
   },
   "include": [
     "src/**/*.ts",
     "src/**/*.d.ts",
     "src/**/*.tsx",
     "src/**/*.vue",
-    "env.d.ts"
+    "env.d.ts",
+    "./redirect/**/*.ts"
   ],
   "references": [{
     "path": "./tsconfig.node.json"
