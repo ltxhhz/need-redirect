@@ -7,13 +7,15 @@
           <template #header>
             <n-text type="info">配置</n-text>
           </template>
-          <n-list-item v-for="profile of profiles" @click.stop="profileSelect(profile.id)">
-            {{ profile.name }}
+          <n-list-item v-for="profile of profiles" @click.stop="profileSelect(profile.id)" class="list-item">
+            <n-text>
+              {{ profile.name }}
+            </n-text>
             <template #suffix>
               <n-popconfirm @positive-click="removeProfile(profile.id)">
                 确定要删除吗
                 <template #trigger>
-                  <n-button circle quaternary @click.stop>
+                  <n-button size="tiny" circle quaternary @click.stop class="suffix-bt">
                     <template #icon>
                       <n-icon>
                         <trash />
@@ -52,7 +54,7 @@
             <n-text>{{ topLeftTitle }}</n-text>
           </n-h3>
           <n-space>
-            <n-button @click="" quaternary>主题</n-button>
+            <n-button @click.stop="changeTheme" quaternary>主题{{ props.themeMode }}</n-button>
             <n-button quaternary tag="a" href="https://github.com/ltxhhz/need-redirect" target="_blank">仓库</n-button>
           </n-space>
         </n-space>
@@ -98,9 +100,18 @@ import { reactive, ref, toRaw } from 'vue';
 import { NLayout, NLayoutHeader, NLayoutSider, NLayoutContent, NLayoutFooter, useMessage, NButton, NH2, NSpace, NText, NDivider, NList, NListItem, NModal, NRadioGroup, NRadio, NInput, NSwitch, NTooltip, NEmpty, NH3, NIcon, NPopconfirm } from 'naive-ui'
 import { Trash } from '@vicons/fa'
 import profile from './profile.vue';
+import type { ThemeMode } from './App.vue'
 
 const message = useMessage()
 const { storage, declarativeNetRequest, runtime } = chrome
+
+const props = defineProps<{
+  themeMode: ThemeMode
+}>()
+
+const emits = defineEmits<{
+  (e:'update:themeMode',v:ThemeMode):void
+}>()
 
 const addTypes = {
   searchParams: 'searchParams',
@@ -272,7 +283,6 @@ function onRuleChange(rule: chrome.declarativeNetRequest.Rule) {
 }
 
 function removeProfile(id: number) {
-
   profiles.splice(id - 1, 1)
   Promise.all([storage.local.set({
     profiles: toRaw(profiles)
@@ -287,14 +297,38 @@ function removeProfile(id: number) {
   })
 }
 
+function changeTheme() {
+  console.log(props.themeMode);
+  if (props.themeMode == 'auto') {
+    emits('update:themeMode', 'light')
+    message.success(`切换主题为 light`)
+  } else if (props.themeMode == 'light') {
+    emits('update:themeMode', 'dark')
+    message.success(`切换主题为 dark`)
+  } else {
+    emits('update:themeMode', 'auto')
+    message.success(`切换主题为 auto`)
+  }
+}
+
 function test() {
 
 }
 </script>
-<style lang="less">
+<style lang="less" scoped>
 .container {
   height: 100vh;
   display: flex;
 
+}
+
+.suffix-btn {
+  display: none;
+}
+
+.list-item:hover {
+  .suffix-btn {
+    display: inline-flex;
+  }
 }
 </style>
