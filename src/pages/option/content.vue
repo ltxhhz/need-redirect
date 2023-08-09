@@ -15,7 +15,7 @@
               <n-popconfirm @positive-click="removeProfile(profile.id)">
                 确定要删除吗
                 <template #trigger>
-                  <n-button size="tiny" circle quaternary @click.stop class="suffix-bt">
+                  <n-button size="tiny" circle quaternary @click.stop class="suffix-btn">
                     <template #icon>
                       <n-icon>
                         <trash />
@@ -48,7 +48,7 @@
       </n-space>
     </n-layout-sider>
     <n-layout>
-      <n-layout-header bordered>
+      <n-layout-header bordered ref="header">
         <n-space justify="space-between" align="center" style="padding: 20px;">
           <n-h3 prefix="bar" style="margin: 0;" align-text>
             <n-text>{{ topLeftTitle }}</n-text>
@@ -63,10 +63,18 @@
         <profile v-if="selected.startsWith('profile-')" :profile="profileParams.profile!"
           @on-profile-change="onProfileChange" :rule="profileParams.rule!" @on-rule-change="onRuleChange">
         </profile>
+        <div v-else
+          :style="{ height: `calc(100vh - ${footer?.$el?.offsetHeight}px - 24px * 2 - ${header?.$el?.offsetHeight}px)` }"
+          style="display: flex;align-items: center;justify-content: center;">
+          <n-text depth="3" style="font-size: 100px;user-select: none;">Need Redirect</n-text>
+        </div>
       </n-layout-content>
-      <n-layout-footer bordered position="absolute">
+      <n-layout-footer ref="footer" bordered position="absolute">
         <n-space justify="space-between" align="center" style="padding: 20px;">
-          footer
+          <n-text v-if="profileParams.profile" type="primary">生效次数 {{ profileParams.profile.count }}</n-text>
+          <template v-else>
+            footer
+          </template>
         </n-space>
       </n-layout-footer>
     </n-layout>
@@ -96,7 +104,7 @@
 </template>
 <script setup lang="ts">
 
-import { reactive, ref, toRaw } from 'vue';
+import { reactive, ref, toRaw, ComponentPublicInstance } from 'vue';
 import { NLayout, NLayoutHeader, NLayoutSider, NLayoutContent, NLayoutFooter, useMessage, NButton, NH2, NSpace, NText, NDivider, NList, NListItem, NModal, NRadioGroup, NRadio, NInput, NSwitch, NTooltip, NEmpty, NH3, NIcon, NPopconfirm } from 'naive-ui'
 import { Trash } from '@vicons/fa'
 import profile from './profile.vue';
@@ -110,7 +118,7 @@ const props = defineProps<{
 }>()
 
 const emits = defineEmits<{
-  (e:'update:themeMode',v:ThemeMode):void
+  (e: 'update:themeMode', v: ThemeMode): void
 }>()
 
 const addTypes = {
@@ -134,7 +142,8 @@ function getAvailableId() {
 
 //#region 添加配置
 type AddTypes = keyof typeof addTypes
-
+const header = ref<ComponentPublicInstance | null>(null)
+const footer = ref<ComponentPublicInstance | null>(null)
 const profileName = ref('')
 const addType = ref<AddTypes>('searchParams')
 const searchParamsOptions = reactive({
@@ -152,6 +161,8 @@ export type Profile = {
   id: number
   name: string
   domains: string[]
+  count: number,
+  rules: chrome.declarativeNetRequest.Rule[]
 } & {
   type: 'searchParams'
   key: string
@@ -201,26 +212,28 @@ function showAddModel(show: boolean = true) {
 const profileParams: {
   profile?: Profile,
   rule?: chrome.declarativeNetRequest.Rule
-} = {}
+} = reactive({})
 
 function profileSelect(item: number) {
   profileParams.profile = profiles[item - 1]
   profileParams.rule = rules.find(e => e.id == item)!
   selected.value = 'profile-' + item
-  console.log(selected.value, profiles);
+
   topLeftTitle.value = '配置.' + profileParams.profile.name
 }
 
 function addProfile() {
   const id = getAvailableId()
   let rule: chrome.declarativeNetRequest.Rule
+
   declarativeNetRequest.updateDynamicRules({
     addRules: [rule = {
       id,
       action: {
         type: declarativeNetRequest.RuleActionType.REDIRECT,
         redirect: {
-          regexSubstitution: `chrome-extension://${runtime.id}/redirect/index.html?url=\\1&base64=${searchParamsOptions.base64}`
+          regexSubstitution: runtime.getURL(`/redirect/index.html?url=\\1&base64=${searchParamsOptions.base64}&id=${id}`)
+          // regexSubstitution: `chrome-extension://${runtime.id}/redirect/index.html?url=\\1&base64=${searchParamsOptions.base64}&id=${id}`
         }
       },
       condition: {
@@ -237,8 +250,10 @@ function addProfile() {
       type: 'searchParams',
       id,
       domains: ['example.com'],
+      count: 0,
       key: searchParamsOptions.key,
-      base64: searchParamsOptions.base64
+      base64: searchParamsOptions.base64,
+      rules
     })
     storage.local.set({
       profiles: toRaw(profiles)
@@ -295,6 +310,10 @@ function removeProfile(id: number) {
     console.error(e);
     message.error(`删除失败 ${e?.message}`)
   })
+  if (profileParams.profile?.id == id) {
+    profileParams.profile = undefined
+    profileParams.rule = undefined
+  }
 }
 
 function changeTheme() {
@@ -323,12 +342,12 @@ function test() {
 }
 
 .suffix-btn {
-  display: none;
+  opacity: 0;
 }
 
 .list-item:hover {
   .suffix-btn {
-    display: inline-flex;
+    opacity: 1;
   }
 }
 </style>

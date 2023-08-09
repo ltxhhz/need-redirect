@@ -2,7 +2,7 @@
   <n-config-provider :theme="lightMode ? lightTheme : darkTheme">
     <!-- <n-dialog-provider> -->
     <n-message-provider>
-      <content v-model:theme-mode="themeMode1" />
+      <content v-model:theme-mode="themeMode" />
     </n-message-provider>
     <!-- </n-dialog-provider> -->
   </n-config-provider>
@@ -14,34 +14,34 @@ import content from './content.vue'
 import { ref, watch } from 'vue';
 
 export type ThemeMode = 'auto' | 'light' | 'dark'
-const themeMode1 = ref<ThemeMode>('auto')
+const themeMode = ref<ThemeMode>('auto')
 const mm = window.matchMedia('(prefers-color-scheme: light)')
 const lightMode = ref(mm.matches)
 
 mm.addEventListener('change', (ev) => {
-  if (themeMode1.value == 'auto') {
+  if (themeMode.value == 'auto') {
     lightMode.value = ev.matches
   }
 })
 
 chrome.storage.local.get(['themeMode']).then(e => {
   if (e.themeMode) {
-    themeMode1.value = e.themeMode
+    themeMode.value = e.themeMode
   } else {
     chrome.storage.local.set({
       themeMode: 'auto'
     })
   }
-  lightMode.value = themeMode1.value == 'light'
+  lightMode.value = themeMode.value == 'light'
 })
-console.log("🚀 ~ file: App.vue:37 ~ chrome.storage.local.get ~ themeMode:", themeMode1)
-watch(() => themeMode1.value, v => {
+console.log("🚀 ~ file: App.vue:37 ~ chrome.storage.local.get ~ themeMode:", themeMode)
+watch(() => themeMode.value, v => {
   console.log('change', v);
 
   if (v == 'auto') {
     lightMode.value = mm.matches
   } else {
-    lightMode.value = themeMode1.value == 'light'
+    lightMode.value = themeMode.value == 'light'
   }
   chrome.storage.local.set({
     themeMode: v

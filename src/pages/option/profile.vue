@@ -5,6 +5,15 @@
       <n-text type="primary">
         匹配方式
       </n-text>
+      <!-- todo -->
+      <!-- <n-switch v-model:value="useAllDomains" @update:value="useAllDomainsChange">
+        <template #checked>
+          包含
+        </template>
+        <template #unchecked>
+          排除
+        </template>
+      </n-switch> -->
       <n-switch v-model:value="useAllDomains" @update:value="useAllDomainsChange">
         <template #checked>
           全部域名
