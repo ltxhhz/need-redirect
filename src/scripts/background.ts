@@ -1,5 +1,6 @@
+import { FilterType } from './../types.d'
 import type { Profile } from '@/types'
-const { webNavigation, storage, tabs } = chrome
+const { webNavigation, storage, tabs, scripting } = chrome
 let profiles: Profile[]
 let enable = true
 storage.local.get(['profiles', 'enable']).then(e => {
@@ -18,10 +19,8 @@ storage.local.get(['profiles', 'enable']).then(e => {
       console.log('已关闭')
       return
     }
-    console.log('触发')
-    console.log('navigation', detail)
     profiles.some((e, i) => {
-      if (e.filters.some(e => matchHost(e.detail, detail.url, e.type == 'wildcard'))) {
+      if (e.filters.some(e => matchHost(e.detail, detail.url, e.type))) {
         if (e.type == 'searchParams') {
           const value = new URL(detail.url).searchParams.get(e.key)
           if (value) {
@@ -35,6 +34,40 @@ storage.local.get(['profiles', 'enable']).then(e => {
       }
     })
   })
+  webNavigation.onCompleted.addListener(detail => {
+    console.log(detail)
+    if (!enable) {
+      console.log('已关闭')
+      return
+    }
+    profiles.some((e, i) => {
+      if (e.filters.some(e => matchHost(e.preProcessDetail, detail.url, e.preProcessType))) {
+        console.log('aaa')
+
+        scripting
+          .executeScript({
+            target: {
+              tabId: detail.tabId,
+              allFrames: true
+            },
+            world: 'MAIN',
+            args: [e.key],
+            func: key => {
+              document.querySelectorAll('a').forEach(e => {
+                const value = new URL(e.href).searchParams.get(key)
+                if (value) {
+                  e.href = value
+                }
+              })
+            }
+          })
+          .then(() => {
+            countPlus(e, i)
+          })
+        return true
+      }
+    })
+  })
 })
 
 storage.local.onChanged.addListener(e => {
@@ -45,8 +78,15 @@ storage.local.onChanged.addListener(e => {
   }
 })
 
-function matchHost(pattern: string, url: string, wildcard = false) {
-  return new RegExp(wildcard ? pattern.replace(/\*/g, '[^.]*') : pattern).test(new URL(url).host)
+function matchHost(pattern: string | undefined, url: string, type?: FilterType) {
+  if (!pattern) return false
+  if (type == 'hostWildcard') {
+    return new RegExp(pattern.replace(/\*/g, '[^.]*')).test(new URL(url).host)
+  } else if (type == 'urlWildcard') {
+    return new RegExp(pattern.replace(/\*/g, '[^.]*')).test(url)
+  } else {
+    return new RegExp(pattern).test(url)
+  }
 }
 
 function countPlus(profile: Profile, index: number) {

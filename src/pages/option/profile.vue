@@ -31,7 +31,9 @@
   <n-modal v-model:show="showAddDomainModelStatus" preset="dialog" title="添加配置">
     <n-space vertical>
       <n-select placeholder="条件类型" :options="filterTypes" v-model:value="addDomainForm.type" />
-      <n-input placeholder="值" v-model:value="addDomainForm.detail" @keyup.enter="addDomain"></n-input>
+      <n-input placeholder="pattern" v-model:value="addDomainForm.detail" @keyup.enter="addDomain"></n-input>
+      <n-select placeholder="预处理类型" :options="filterTypes" v-model:value="addDomainForm.preProcessType" />
+      <n-input placeholder="pattern" v-model:value="addDomainForm.preProcessDetail" @keyup.enter="addDomain"></n-input>
     </n-space>
     <template #action>
       <n-button @click="addDomain" :disabled="!addDomainForm.type && !addDomainForm.detail">添加</n-button>
@@ -57,51 +59,82 @@ const emits = defineEmits<{
   (e: 'onProfileChange', v: Profile): void
 }>()
 
-const columns: DataTableColumns<Filter> = [{
-  title: '类型',
-  key: 'type',
-  render(rowData, rowIndex) {
-    return h(NSelect, {
-      options: filterTypes,
-      value: rowData.type,
-      size: 'small',
-      "onUpdate:value": (v: Filter['type']) => {
-        profile.filters[rowIndex].type = v
-      }
-    })
-  },
-}, {
-  title: '细节',
-  key: 'detail',
-  render(rowData, rowIndex) {
-    return h(NInput, {
-      value: rowData.detail,
-      size: 'small',
-      "onUpdate:value": (v: string) => {
-        profile.filters[rowIndex].detail = v
-      }
-    })
-  },
-}, {
-  title: '操作',
-  key: 'actions',
-  render(rowData,/*  rowIndex */) {
-    return h(NButton, {
-      type: 'warning',
-      size: 'small',
-      onClick() {
-        delDomain(rowData.id)
-      },
-    }, {
-      default: () => '删除'
-    })
-  },
-}]
+const columns: DataTableColumns<Filter> = [/* {
+  type:'expand',
+  expandable:(rowData)=>rowData.preProcess,
+  renderExpand:rowData=>{
+    return h()
+  }
+}, */{
+    title: '类型',
+    key: 'type',
+    render(rowData, rowIndex) {
+      return h(NSelect, {
+        options: filterTypes,
+        value: rowData.type,
+        size: 'small',
+        "onUpdate:value": (v: Filter['type']) => {
+          profile.filters[rowIndex].type = v
+        }
+      })
+    },
+  }, {
+    title: 'pattern',
+    key: 'detail',
+    render(rowData, rowIndex) {
+      return h(NInput, {
+        value: rowData.detail,
+        size: 'small',
+        "onUpdate:value": (v: string) => {
+          profile.filters[rowIndex].detail = v
+        }
+      })
+    },
+  }, {
+    title: '预处理类型',
+    key: 'type',
+    render(rowData, rowIndex) {
+      return h(NSelect, {
+        options: filterTypes,
+        value: rowData.preProcessType,
+        size: 'small',
+        "onUpdate:value": (v: Filter['type']) => {
+          profile.filters[rowIndex].preProcessType = v
+        }
+      })
+    },
+  }, {
+    title: '预处理',
+    key: 'preProcess',
+    render(rowData, rowIndex) {
+      return h(NInput, {
+        value: rowData.preProcessDetail,
+        size: 'small',
+        "onUpdate:value": (v: string) => {
+          profile.filters[rowIndex].preProcessDetail = v
+        }
+      })
+    },
+  }, {
+    title: '操作',
+    key: 'actions',
+    render(rowData,/*  rowIndex */) {
+      return h(NButton, {
+        type: 'warning',
+        size: 'small',
+        onClick() {
+          delDomain(rowData.id)
+        },
+      }, {
+        default: () => '删除'
+      })
+    },
+  }]
 
 const tableData = ref<Filter[]>()
 
 watch(() => profile, (v) => {
-  tableData.value = v.filters.map(e => ({ id: e.id, type: e.type, detail: e.detail }))
+  tableData.value = v.filters
 }, {
   deep: true,
   immediate: true
@@ -116,8 +149,11 @@ watch(() => profile, (v) => {
 
 const showAddDomainModelStatus = ref(false)
 const filterTypes: SelectOption[] = [{
-  label: '通配符',
-  value: 'wildcard'
+  label: '域名通配符',
+  value: 'hostWildcard'
+}, {
+  label: 'url通配符',
+  value: 'urlWildcard'
 }, {
   label: '正则表达式',
   value: 'regexp'
@@ -125,10 +161,14 @@ const filterTypes: SelectOption[] = [{
 
 const addDomainForm = reactive<{
   type: Filter['type'] | undefined,
-  detail: 'string' | undefined
+  detail: string | undefined,
+  preProcessType: Filter['type'] | undefined,
+  preProcessDetail: string | undefined
 }>({
   type: undefined,
-  detail: undefined
+  detail: undefined,
+  preProcessType: undefined,
+  preProcessDetail: undefined
 })
 
 function showAddDomainModel(show: boolean = true) {

@@ -189,8 +189,10 @@ function addProfile() {
     type: 'searchParams',
     filters: [{
       id: 0,
-      type: 'wildcard',
-      detail: '*.example.com'
+      type: 'hostWildcard',
+      detail: '*.example.com',
+      preProcessType: 'regexp',
+      preProcessDetail: 'zhuanlan.example.com/p/.*'
     }],
     count: 0,
     key: searchParamsOptions.key,
@@ -224,6 +226,8 @@ function removeProfile(id: number) {
     profiles: toRaw(profiles)
   }).then(() => {
     message.success('删除成功')
+    selected.index = -1
+    selected.value = ''
   }).catch((e) => {
     console.error(e);
     message.error(`删除失败 ${e?.message}`)

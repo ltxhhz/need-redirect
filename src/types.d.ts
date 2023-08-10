@@ -1,8 +1,10 @@
-
+export type FilterType = 'hostWildcard' | 'urlWildcard' | 'regexp'
 export interface Filter {
   id: number
-  type: 'wildcard' | 'regexp'
+  type: FilterType
   detail: string
+  preProcessType?: FilterType
+  preProcessDetail?: string
 }
 
 export type Profile = {

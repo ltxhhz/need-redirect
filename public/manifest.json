@@ -14,7 +14,8 @@
   "permissions": [
     "tabs",
     "storage",
-    "webNavigation"
+    "webNavigation",
+    "scripting"
   ],
   "host_permissions": ["*://*/*"],
   "options_page": "src/pages/option/index.html",
