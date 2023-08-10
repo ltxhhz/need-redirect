@@ -7,12 +7,12 @@
           <template #header>
             <n-text type="info">配置</n-text>
           </template>
-          <n-list-item v-for="profile of profiles" @click.stop="profileSelect(profile.id)" class="list-item">
+          <n-list-item v-for="profile, index of profiles" @click.stop="profileSelect(index)" class="list-item">
             <n-text>
               {{ profile.name }}
             </n-text>
             <template #suffix>
-              <n-popconfirm @positive-click="removeProfile(profile.id)">
+              <n-popconfirm @positive-click="removeProfile(index)">
                 确定要删除吗
                 <template #trigger>
                   <n-button size="tiny" circle quaternary @click.stop class="suffix-btn">
@@ -41,8 +41,6 @@
           </template>
           <n-text>先添加一个配置吧</n-text>
         </n-tooltip>
-        <n-button block @click="deleteRule">删除</n-button>
-        <n-button block @click="getEnabled">启用的</n-button>
         <n-button block @click="test">测试</n-button>
         <n-divider dashed></n-divider>
       </n-space>
@@ -60,8 +58,8 @@
         </n-space>
       </n-layout-header>
       <n-layout-content content-style="padding: 24px;">
-        <profile v-if="selected.startsWith('profile-')" :profile="profileParams.profile!"
-          @on-profile-change="onProfileChange" :rule="profileParams.rule!" @on-rule-change="onRuleChange">
+        <profile v-if="selected.value.startsWith('profile-')" :profile="profiles[selected.index]"
+          @on-profile-change="onProfileChange">
         </profile>
         <div v-else
           :style="{ height: `calc(100vh - ${footer?.$el?.offsetHeight}px - 24px * 2 - ${header?.$el?.offsetHeight}px)` }"
@@ -71,7 +69,9 @@
       </n-layout-content>
       <n-layout-footer ref="footer" bordered position="absolute">
         <n-space justify="space-between" align="center" style="padding: 20px;">
-          <n-text v-if="profileParams.profile" type="primary">生效次数 {{ profileParams.profile.count }}</n-text>
+          <n-text v-if="selected.value.startsWith('profile-') && profiles[selected.index]" type="primary">
+            生效次数 {{ profiles[selected.index].count }}
+          </n-text>
           <template v-else>
             footer
           </template>
@@ -94,7 +94,6 @@
           <n-input placeholder="searchParams 属性名" v-model:value="searchParamsOptions.key"></n-input>
           base64解码<n-switch v-model:value="searchParamsOptions.base64"></n-switch>
         </n-space>
-        <n-input placeholder="要匹配的子目录(以'/'开头,可为空)" v-model:value="searchParamsOptions.path"></n-input>
       </template>
     </n-space>
     <template #action>
@@ -109,9 +108,10 @@ import { NLayout, NLayoutHeader, NLayoutSider, NLayoutContent, NLayoutFooter, us
 import { Trash } from '@vicons/fa'
 import profile from './profile.vue';
 import type { ThemeMode } from './App.vue'
+import { Profile } from '@/types.ts';
 
 const message = useMessage()
-const { storage, declarativeNetRequest, runtime } = chrome
+const { storage } = chrome
 
 const props = defineProps<{
   themeMode: ThemeMode
@@ -126,20 +126,6 @@ const addTypes = {
   other: '其他'
 }
 
-let availableIds: number[] = []
-
-function getAvailableId() {
-  let id = availableIds.shift()
-  if (id) {
-    storage.local.set({
-      availableIds
-    })
-    return id
-  }
-  id = profiles.length + 1
-  return id
-}
-
 //#region 添加配置
 type AddTypes = keyof typeof addTypes
 const header = ref<ComponentPublicInstance | null>(null)
@@ -148,50 +134,30 @@ const profileName = ref('')
 const addType = ref<AddTypes>('searchParams')
 const searchParamsOptions = reactive({
   key: '',
-  path: '',
   base64: false
 })
 const showAddModelStatus = ref(false)
 const topLeftTitle = ref('')
 //#endregion
 
-const selected = ref('')
-
-export type Profile = {
-  id: number
-  name: string
-  domains: string[]
-  count: number,
-  rules: chrome.declarativeNetRequest.Rule[]
-} & {
-  type: 'searchParams'
-  key: string
-  base64: boolean
-}
-
-const rules = reactive<chrome.declarativeNetRequest.Rule[]>([])
-const profiles = reactive<Profile[]>([])
-
-declarativeNetRequest.getDynamicRules()
-  .then(e => {
-    console.log(e);
-    rules.push(...e)
-  })
-storage.local.get(['profiles', 'availableIds'], e => {
-  console.log(e)
-  profiles.push(...(e.profiles || []))
-  availableIds = e.availableIds || []
+const selected = reactive({
+  index: -1,
+  value: ''
 })
 
-function deleteRule() {
-  declarativeNetRequest.updateDynamicRules({
-    removeRuleIds: [Number(prompt('id', '1'))]
-  })
-}
-function getEnabled() {
-  declarativeNetRequest.getEnabledRulesets()
-    .then(console.log)
-}
+const profiles = reactive<Profile[]>([])
+
+storage.local.get(['profiles'], e => {
+  console.log(e)
+  profiles.push(...(e.profiles || []))
+})
+
+storage.local.onChanged.addListener(changes => {
+  if (changes.profiles?.newValue) {
+    profiles.length = 0
+    profiles.push(...changes.profiles.newValue)
+  }
+})
 
 function initAddModel() {
   profileName.value = ''
@@ -209,70 +175,39 @@ function showAddModel(show: boolean = true) {
   }
 }
 
-const profileParams: {
-  profile?: Profile,
-  rule?: chrome.declarativeNetRequest.Rule
-} = reactive({})
-
 function profileSelect(item: number) {
-  profileParams.profile = profiles[item - 1]
-  profileParams.rule = rules.find(e => e.id == item)!
+  selected.index = item
   selected.value = 'profile-' + item
 
-  topLeftTitle.value = '配置.' + profileParams.profile.name
+  topLeftTitle.value = '配置.' + profiles[item].name
 }
 
 function addProfile() {
-  const id = getAvailableId()
-  let rule: chrome.declarativeNetRequest.Rule
-
-  declarativeNetRequest.updateDynamicRules({
-    addRules: [rule = {
-      id,
-      action: {
-        type: declarativeNetRequest.RuleActionType.REDIRECT,
-        redirect: {
-          regexSubstitution: runtime.getURL(`/redirect/index.html?url=\\1&base64=${searchParamsOptions.base64}&id=${id}`)
-          // regexSubstitution: `chrome-extension://${runtime.id}/redirect/index.html?url=\\1&base64=${searchParamsOptions.base64}&id=${id}`
-        }
-      },
-      condition: {
-        regexFilter: `^https?://[^/]+/.*\\?.*&?\\b${searchParamsOptions.key}=([^&]+)`,
-        resourceTypes: [declarativeNetRequest.ResourceType.MAIN_FRAME],
-        requestMethods: [declarativeNetRequest.RequestMethod.GET]
-      },
-    }]
-  }).then(() => {
-    message.success('添加成功')
-    rules.push(rule)
-    profiles.push({
-      name: profileName.value,
-      type: 'searchParams',
-      id,
-      domains: ['example.com'],
-      count: 0,
-      key: searchParamsOptions.key,
-      base64: searchParamsOptions.base64,
-      rules
-    })
-    storage.local.set({
-      profiles: toRaw(profiles)
-    })
-    showAddModel(false)
+  message.success('添加成功')
+  profiles.push({
+    name: profileName.value,
+    type: 'searchParams',
+    filters: [{
+      id: 0,
+      type: 'wildcard',
+      detail: '*.example.com'
+    }],
+    count: 0,
+    key: searchParamsOptions.key,
+    base64: searchParamsOptions.base64
+  })
+  storage.local.set({
+    profiles: toRaw(profiles)
   }).catch((e) => {
     console.error(e)
     message.error(`添加失败 ${e?.message}`)
   })
+  showAddModel(false)
 }
 
 function onProfileChange(profile: Profile) {
   console.log('onProfileChange', profile)
-
-  profiles.forEach((p, i) => {
-    if (p.id == profile.id) {
-      profiles[i] = profile
-    }
-  });
+  profiles[selected.index] = profile
   storage.local.set({
     profiles: toRaw(profiles)
   }).then(() => {
@@ -283,37 +218,16 @@ function onProfileChange(profile: Profile) {
   })
 }
 
-function onRuleChange(rule: chrome.declarativeNetRequest.Rule) {
-  console.log(rule);
-
-  declarativeNetRequest.updateDynamicRules({
-    removeRuleIds: [rule.id],
-    addRules: [rule]
-  }).then(() => {
-
-  }).catch((e) => {
-    console.error(e);
-    message.error(`保存失败 ${e?.message}`)
-  })
-}
-
 function removeProfile(id: number) {
   profiles.splice(id - 1, 1)
-  Promise.all([storage.local.set({
+  storage.local.set({
     profiles: toRaw(profiles)
-  }),
-  declarativeNetRequest.updateDynamicRules({
-    removeRuleIds: [id]
-  })]).then(() => {
+  }).then(() => {
     message.success('删除成功')
   }).catch((e) => {
     console.error(e);
     message.error(`删除失败 ${e?.message}`)
   })
-  if (profileParams.profile?.id == id) {
-    profileParams.profile = undefined
-    profileParams.rule = undefined
-  }
 }
 
 function changeTheme() {

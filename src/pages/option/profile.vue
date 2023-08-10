@@ -1,19 +1,19 @@
 <template>
-  <n-space vertical>
+  <!-- <n-space vertical>
     <n-blockquote type="primary" style="margin: 5px 0;">{{ rule1.condition.regexFilter }}</n-blockquote>
     <n-space align="center">
       <n-text type="primary">
         匹配方式
       </n-text>
-      <!-- todo -->
-      <!-- <n-switch v-model:value="useAllDomains" @update:value="useAllDomainsChange">
+      todo
+      <n-switch v-model:value="useAllDomains" @update:value="useAllDomainsChange">
         <template #checked>
           包含
         </template>
         <template #unchecked>
           排除
         </template>
-      </n-switch> -->
+      </n-switch>
       <n-switch v-model:value="useAllDomains" @update:value="useAllDomainsChange">
         <template #checked>
           全部域名
@@ -23,55 +23,74 @@
         </template>
       </n-switch>
     </n-space>
+  </n-space> -->
+  <n-space style="margin: 10px 0;">
+    <n-button @click="showAddDomainModel(true)" type="primary">添加域名</n-button>
   </n-space>
-  <template v-if="!useAllDomains">
-    <n-space style="margin: 10px 0;">
-      <n-button @click="showAddDomainModel(true)">添加域名</n-button>
-    </n-space>
-    <n-data-table :columns="columns" :data="tableData" />
-  </template>
+  <n-data-table :columns="columns" :data="tableData" />
   <n-modal v-model:show="showAddDomainModelStatus" preset="dialog" title="添加配置">
     <n-space vertical>
-      <n-input placeholder="输入域名" v-model:value="domain" @keyup.enter="addDomain"></n-input>
+      <n-select placeholder="条件类型" :options="filterTypes" v-model:value="addDomainForm.type" />
+      <n-input placeholder="值" v-model:value="addDomainForm.detail" @keyup.enter="addDomain"></n-input>
     </n-space>
     <template #action>
-      <n-button @click="addDomain">添加</n-button>
+      <n-button @click="addDomain" :disabled="!addDomainForm.type && !addDomainForm.detail">添加</n-button>
     </template>
   </n-modal>
 </template>
 <script setup lang="ts">
-import { DataTableColumns, NButton, NDataTable, NSpace, NBlockquote, NSwitch, NText, NModal, NInput } from 'naive-ui';
-import { h, ref, toRaw, watch } from 'vue'
-import type { Profile } from './content.vue'
+import { DataTableColumns, NButton, NDataTable, NSpace,/*  NBlockquote, NSwitch, NText, */ NModal, NInput, NSelect, type SelectOption } from 'naive-ui';
+import { h, ref, toRaw, watch, reactive } from 'vue'
+import type { Filter, Profile } from '@/types'
 
 
 const props = defineProps<{
-  profile: Profile,
-  rule: chrome.declarativeNetRequest.Rule
+  profile: Profile
 }>()
-const profile1 = props.profile,
-  rule1 = props.rule
-console.log(profile1, rule1);
+const profile = props.profile
+
+console.log(profile);
 
 console.log(props);
 
 const emits = defineEmits<{
-  (e: 'onProfileChange', v: Profile): void,
-  (e: 'onRuleChange', v: chrome.declarativeNetRequest.Rule): void
+  (e: 'onProfileChange', v: Profile): void
 }>()
 
-const columns: DataTableColumns<(typeof tableData.value)[number]> = [{
-  title: '域名',
-  key: 'domain',
-  colSpan: (_, rowIndex) => rowIndex ? 1 : 2
+const columns: DataTableColumns<Filter> = [{
+  title: '类型',
+  key: 'type',
+  render(rowData, rowIndex) {
+    return h(NSelect, {
+      options: filterTypes,
+      value: rowData.type,
+      size: 'small',
+      "onUpdate:value": (v: Filter['type']) => {
+        profile.filters[rowIndex].type = v
+      }
+    })
+  },
+}, {
+  title: '细节',
+  key: 'detail',
+  render(rowData, rowIndex) {
+    return h(NInput, {
+      value: rowData.detail,
+      size: 'small',
+      "onUpdate:value": (v: string) => {
+        profile.filters[rowIndex].detail = v
+      }
+    })
+  },
 }, {
   title: '操作',
   key: 'actions',
   render(rowData,/*  rowIndex */) {
     return h(NButton, {
       type: 'warning',
+      size: 'small',
       onClick() {
-        delDomain(rowData.domain)
+        delDomain(rowData.id)
       },
     }, {
       default: () => '删除'
@@ -79,44 +98,65 @@ const columns: DataTableColumns<(typeof tableData.value)[number]> = [{
   },
 }]
 
-const useAllDomains = ref(!rule1.condition.requestDomains)
+const tableData = ref<Filter[]>()
 
-function useAllDomainsChange(value: boolean) {
-  rule1.condition.requestDomains = value ? undefined : profile1.domains
-  emits('onRuleChange', toRaw(rule1))
-}
+watch(() => profile, (v) => {
+  tableData.value = v.filters.map(e => ({ id: e.id, type: e.type, detail: e.detail }))
+}, {
+  deep: true,
+  immediate: true
+})
 
-const tableData = ref(profile1.domains.map(e => ({ domain: e })))
-
-watch(() => profile1, (v) => {
-  tableData.value = v.domains.map(e => ({ domain: e }))
-}, { deep: true })
+watch(() => profile, (v) => {
+  console.log('profile update');
+  emits('onProfileChange', toRaw(v))
+}, {
+  deep: true,
+})
 
 const showAddDomainModelStatus = ref(false)
-const domain = ref('')
+const filterTypes: SelectOption[] = [{
+  label: '通配符',
+  value: 'wildcard'
+}, {
+  label: '正则表达式',
+  value: 'regexp'
+}]
+
+const addDomainForm = reactive<{
+  type: Filter['type'] | undefined,
+  detail: 'string' | undefined
+}>({
+  type: undefined,
+  detail: undefined
+})
 
 function showAddDomainModel(show: boolean = true) {
   showAddDomainModelStatus.value = show
 }
 
-function addDomain() {
-  let url
-  if (/^https?/.test(domain.value)) {
-    url = new URL(domain.value)
-    profile1.domains.push(url.hostname)
-  } else {
-    profile1.domains.push(domain.value)
+function getAvailableId() {
+  const arr = profile.filters.map(e => e.id)
+  for (let i = 0; i < arr.length; i++) {
+    if (!arr.includes(i)) {
+      return i
+    }
   }
-  emits('onProfileChange', toRaw(profile1))
+}
+
+function addDomain() {
+  profile.filters.push({
+    ...addDomainForm,
+    id: getAvailableId()!
+  } as Filter)
   showAddDomainModel(false)
 }
 
-function delDomain(domain: string) {
-  for (let i = 0; i < profile1.domains.length; i++) {
-    const host = profile1.domains[i];
-    if (host == domain) {
-      profile1.domains.splice(i, 1)
-      emits('onProfileChange', toRaw(profile1))
+function delDomain(index: number) {
+  for (let i = 0; i < profile.filters.length; i++) {
+    const host = profile.filters[i];
+    if (host.id == index) {
+      profile.filters.splice(i, 1)
       break
     }
   }

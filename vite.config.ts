@@ -12,7 +12,7 @@ export default defineConfig({
         option: join(__dirname, './src/pages/option/index.html'),
         popup: join(__dirname, './src/pages/popup/index.html'),
         content: join(__dirname, './src/scripts/content.ts'),
-        redirect: join(__dirname, './redirect/index.html'),
+        background: join(__dirname, './src/scripts/background.ts'),
       },
       output: {
         entryFileNames(chunkInfo) {
@@ -20,27 +20,29 @@ export default defineConfig({
 
           if (chunkInfo.name == 'content') {
             return 'scripts/content.js'
+          } else if (chunkInfo.name == 'background') {
+            return 'scripts/background.js'
           }
           return 'assets/[name]-[hash].js'
-        },
-      },
+        }
+      }
     },
     sourcemap: true,
     outDir: 'extension',
     watch: {
       include: [join(__dirname, './public')],
       chokidar: {
-        alwaysStat: true,
-      },
-    },
+        alwaysStat: true
+      }
+    }
   },
   resolve: {
     alias: {
-      '@': join(__dirname, './src'),
-    },
+      '@': join(__dirname, './src')
+    }
   },
   optimizeDeps: {
-    include: [join(__dirname, './src/scripts/**/*')],
-  },
+    include: [join(__dirname, './src/scripts/**/*')]
+  }
 })
 
