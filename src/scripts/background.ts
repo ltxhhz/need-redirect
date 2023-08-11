@@ -1,5 +1,6 @@
 import { FilterType } from './../types.d'
-import type { Profile } from '@/types'
+import type { PreProcessMethod, Profile } from '@/types'
+import * as preProcessFunc from './pre-process'
 const { webNavigation, storage, tabs, scripting } = chrome
 let profiles: Profile[]
 let enable = true
@@ -41,7 +42,8 @@ storage.local.get(['profiles', 'enable']).then(e => {
       return
     }
     profiles.some((e, i) => {
-      if (e.filters.some(e => matchHost(e.preProcessDetail, detail.url, e.preProcessType))) {
+      let method: PreProcessMethod
+      if (e.filters.some(e => matchHost(e.preProcessDetail, detail.url, e.preProcessType) && ((method = e.preProcessMethod), true))) {
         console.log('aaa')
 
         scripting
@@ -51,15 +53,8 @@ storage.local.get(['profiles', 'enable']).then(e => {
               allFrames: true
             },
             world: 'MAIN',
-            args: [e.key],
-            func: key => {
-              document.querySelectorAll('a').forEach(e => {
-                const value = new URL(e.href).searchParams.get(key)
-                if (value) {
-                  e.href = value
-                }
-              })
-            }
+            args: [e.key], //todo 适配其他方法
+            func: preProcessFunc[method!]
           })
           .then(() => {
             countPlus(e, i)

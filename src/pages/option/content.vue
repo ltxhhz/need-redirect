@@ -5,9 +5,24 @@
       <n-space vertical>
         <n-list clickable show-divider>
           <template #header>
+            <n-text type="info">设置</n-text>
+          </template>
+          <n-list-item @click.stop="profileSelect('setting', 0)">
+            <template #prefix>
+              <n-space align="center" item-style="line-height:0">
+                <n-icon>
+                  <cog />
+                </n-icon>
+              </n-space>
+            </template>
+            <n-text>通用</n-text>
+          </n-list-item>
+        </n-list>
+        <n-list clickable show-divider>
+          <template #header>
             <n-text type="info">配置</n-text>
           </template>
-          <n-list-item v-for="profile, index of profiles" @click.stop="profileSelect(index)" class="list-item">
+          <n-list-item v-for="profile, index of profiles" @click.stop="profileSelect('profile', index)" class="list-item">
             <n-text>
               {{ profile.name }}
             </n-text>
@@ -37,11 +52,18 @@
         </n-list>
         <n-tooltip :show="!profiles.length" placement="right-start">
           <template #trigger>
-            <n-button block @click="showAddModel()">添加</n-button>
+            <n-button block @click="showAddModel()">
+              <template #icon>
+                <n-icon>
+                  <plus />
+                </n-icon>
+              </template>
+              添加
+            </n-button>
           </template>
           <n-text>先添加一个配置吧</n-text>
         </n-tooltip>
-        <n-button block @click="test">测试</n-button>
+        <n-button v-if="dev" block @click="test">测试</n-button>
         <n-divider dashed></n-divider>
       </n-space>
     </n-layout-sider>
@@ -58,9 +80,10 @@
         </n-space>
       </n-layout-header>
       <n-layout-content content-style="padding: 24px;">
-        <profile v-if="selected.value.startsWith('profile-')" :profile="profiles[selected.index]"
+        <profile v-if="selected.value == 'profile'" :profile="profiles[selected.index]"
           @on-profile-change="onProfileChange">
         </profile>
+        <i-a-e v-else-if="selected.value == 'setting' && selected.index == 0"></i-a-e>
         <div v-else
           :style="{ height: `calc(100vh - ${footer?.$el?.offsetHeight}px - 24px * 2 - ${header?.$el?.offsetHeight}px)` }"
           style="display: flex;align-items: center;justify-content: center;">
@@ -69,7 +92,7 @@
       </n-layout-content>
       <n-layout-footer ref="footer" bordered position="absolute">
         <n-space justify="space-between" align="center" style="padding: 20px;">
-          <n-text v-if="selected.value.startsWith('profile-') && profiles[selected.index]" type="primary">
+          <n-text v-if="selected.value == 'profile' && profiles[selected.index]" type="primary">
             生效次数 {{ profiles[selected.index].count }}
           </n-text>
           <template v-else>
@@ -105,14 +128,15 @@
 
 import { reactive, ref, toRaw, ComponentPublicInstance } from 'vue';
 import { NLayout, NLayoutHeader, NLayoutSider, NLayoutContent, NLayoutFooter, useMessage, NButton, NH2, NSpace, NText, NDivider, NList, NListItem, NModal, NRadioGroup, NRadio, NInput, NSwitch, NTooltip, NEmpty, NH3, NIcon, NPopconfirm } from 'naive-ui'
-import { Trash } from '@vicons/fa'
-import profile from './profile.vue';
+import { Trash, Plus, Cog } from '@vicons/fa'
+import profile from '@/components/profile.vue';
+import IAE from '@/components/importAndExport.vue';
 import type { ThemeMode } from './App.vue'
 import { Profile } from '@/types.ts';
 
 const message = useMessage()
 const { storage } = chrome
-
+const dev = import.meta.env.DEV
 const props = defineProps<{
   themeMode: ThemeMode
 }>()
@@ -140,7 +164,12 @@ const showAddModelStatus = ref(false)
 const topLeftTitle = ref('')
 //#endregion
 
-const selected = reactive({
+type SelectedType = '' | 'profile' | 'setting'
+
+const selected = reactive<{
+  index: number,
+  value: SelectedType
+}>({
   index: -1,
   value: ''
 })
@@ -175,11 +204,11 @@ function showAddModel(show: boolean = true) {
   }
 }
 
-function profileSelect(item: number) {
+function profileSelect(type: SelectedType, item: number) {
   selected.index = item
-  selected.value = 'profile-' + item
+  selected.value = type
 
-  topLeftTitle.value = '配置.' + profiles[item].name
+  topLeftTitle.value = type //'配置.' + profiles[item].name
 }
 
 function addProfile() {
@@ -192,7 +221,8 @@ function addProfile() {
       type: 'hostWildcard',
       detail: '*.example.com',
       preProcessType: 'regexp',
-      preProcessDetail: 'zhuanlan.example.com/p/.*'
+      preProcessDetail: 'zhuanlan.example.com/p/.*',
+      preProcessMethod: 'replaceHref'
     }],
     count: 0,
     key: searchParamsOptions.key,

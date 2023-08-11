@@ -31,9 +31,11 @@
   <n-modal v-model:show="showAddDomainModelStatus" preset="dialog" title="添加配置">
     <n-space vertical>
       <n-select placeholder="条件类型" :options="filterTypes" v-model:value="addDomainForm.type" />
-      <n-input placeholder="pattern" v-model:value="addDomainForm.detail" @keyup.enter="addDomain"></n-input>
+      <n-input placeholder="pattern" v-model:value="addDomainForm.detail" @keyup.enter="addDomain"
+        :status="statusVerify(addDomainForm.type, addDomainForm.detail) ? 'success' : 'error'" />
       <n-select placeholder="预处理类型" :options="filterTypes" v-model:value="addDomainForm.preProcessType" />
-      <n-input placeholder="pattern" v-model:value="addDomainForm.preProcessDetail" @keyup.enter="addDomain"></n-input>
+      <n-input placeholder="pattern" v-model:value="addDomainForm.preProcessDetail" @keyup.enter="addDomain"
+        :status="statusVerify(addDomainForm.preProcessType, addDomainForm.preProcessDetail) ? 'success' : 'error'" />
     </n-space>
     <template #action>
       <n-button @click="addDomain" :disabled="!addDomainForm.type && !addDomainForm.detail">添加</n-button>
@@ -43,7 +45,7 @@
 <script setup lang="ts">
 import { DataTableColumns, NButton, NDataTable, NSpace,/*  NBlockquote, NSwitch, NText, */ NModal, NInput, NSelect, type SelectOption } from 'naive-ui';
 import { h, ref, toRaw, watch, reactive } from 'vue'
-import type { Filter, Profile } from '@/types'
+import type { FilterType, Filter, Profile } from '@/types'
 
 
 const props = defineProps<{
@@ -82,9 +84,11 @@ const columns: DataTableColumns<Filter> = [/* {
     title: 'pattern',
     key: 'detail',
     render(rowData, rowIndex) {
+      const status = statusVerify(rowData.type, rowData.detail) ? 'success' : 'error'
       return h(NInput, {
         value: rowData.detail,
         size: 'small',
+        status,
         "onUpdate:value": (v: string) => {
           profile.filters[rowIndex].detail = v
         }
@@ -107,11 +111,14 @@ const columns: DataTableColumns<Filter> = [/* {
     title: '预处理',
     key: 'preProcess',
     render(rowData, rowIndex) {
+      const status = statusVerify(rowData.preProcessType, rowData.preProcessDetail) ? 'success' : 'error'
       return h(NInput, {
         value: rowData.preProcessDetail,
+        status,
         size: 'small',
         "onUpdate:value": (v: string) => {
           profile.filters[rowIndex].preProcessDetail = v
+          console.log('status', status)
         }
       })
     },
@@ -160,18 +167,40 @@ const filterTypes: SelectOption[] = [{
 }]
 
 const addDomainForm = reactive<{
-  type: Filter['type'] | undefined,
+  type: Filter['type'],
   detail: string | undefined,
   preProcessType: Filter['type'] | undefined,
   preProcessDetail: string | undefined
 }>({
-  type: undefined,
+  type: 'hostWildcard',
   detail: undefined,
   preProcessType: undefined,
   preProcessDetail: undefined
 })
+function statusVerify(type?: FilterType, v?: string) {
+  const regexp = {
+    urlWildcard: /^(\*|http|https|file|ftp|chrome-extension):\/\/(\*|\*\.[^\/\*]+|[^\/\*]+)?(\/.*)$/,
+    hostWildcard: /^\*|\*\.[^\/\*]+|[^\/\*]+$/,
+  }
+  if (!type || !v) return true
+
+  if (type == 'regexp') {
+    try {
+      new RegExp(v)
+      return true
+    } catch (error) {
+      return false
+    }
+  } else {
+    return regexp[type].test(v)
+  }
+}
 
 function showAddDomainModel(show: boolean = true) {
+  if (show) {
+    addDomainForm.type = 'hostWildcard'
+    addDomainForm.detail = addDomainForm.preProcessDetail = addDomainForm.preProcessType = undefined
+  }
   showAddDomainModelStatus.value = show
 }
 

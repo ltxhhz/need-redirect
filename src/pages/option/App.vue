@@ -1,5 +1,5 @@
 <template>
-  <n-config-provider :theme="lightMode ? lightTheme : darkTheme">
+  <n-config-provider :theme="lightMode ? lightTheme : darkTheme" :hljs="hljs">
     <!-- <n-dialog-provider> -->
     <n-message-provider>
       <content v-model:theme-mode="themeMode" />
@@ -12,6 +12,9 @@
 import { NMessageProvider, NConfigProvider, lightTheme, darkTheme } from 'naive-ui'
 import content from './content.vue'
 import { ref, watch } from 'vue';
+import hljs from 'highlight.js/lib/core'
+import json from "highlight.js/lib/languages/json";
+hljs.registerLanguage('json', json)
 
 export type ThemeMode = 'auto' | 'light' | 'dark'
 const themeMode = ref<ThemeMode>('auto')
