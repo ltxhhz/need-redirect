@@ -220,9 +220,12 @@ function addProfile() {
       id: 0,
       type: 'hostWildcard',
       detail: '*.example.com',
-      preProcessType: 'regexp',
-      preProcessDetail: 'zhuanlan.example.com/p/.*',
-      preProcessMethod: 'replaceHref'
+      preProcess: [{
+        // id: 0,
+        preProcessType: 'regexp',
+        preProcessDetail: 'zhuanlan.example.com/p/.*',
+        preProcessMethod: 'replaceHref'
+      }]
     }],
     count: 0,
     key: searchParamsOptions.key,

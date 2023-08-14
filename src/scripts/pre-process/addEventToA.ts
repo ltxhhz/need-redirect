@@ -1,5 +1,6 @@
 export function addEventToA(selector: string) {
-  document.querySelectorAll(selector).forEach(a => {
+  selector = 'a'//todo 配置及使用传参
+  document.querySelectorAll<HTMLAnchorElement>(selector).forEach(a => {
     a.addEventListener('click', function (e) {
       e.preventDefault()
       e.stopPropagation()

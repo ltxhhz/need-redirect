@@ -2,9 +2,14 @@ export type FilterType = 'hostWildcard' | 'urlWildcard' | 'regexp'
 
 export type PreProcessMethod = 'addEventToA' | 'replaceHref'
 export interface PreProcess {
-  preProcessType?: FilterType
-  preProcessDetail?: string
+  // id: number
+  preProcessType: FilterType
+  preProcessDetail: string
   preProcessMethod: PreProcessMethod
+}
+
+export interface preProcessArray {
+  preProcess: PreProcess[]
 }
 
 export interface FilterBase {
@@ -13,7 +18,9 @@ export interface FilterBase {
   detail: string
 }
 
-export type Filter = FilterBase & PreProcess
+export type Filter = FilterBase & preProcessArray
+
+export type FilterTableRow = Filter & PreProcess
 
 export type Profile = {
   name: string

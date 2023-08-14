@@ -43,7 +43,8 @@ storage.local.get(['profiles', 'enable']).then(e => {
     }
     profiles.some((e, i) => {
       let method: PreProcessMethod
-      if (e.filters.some(e => matchHost(e.preProcessDetail, detail.url, e.preProcessType) && ((method = e.preProcessMethod), true))) {
+
+      if (e.filters.some(e => e.preProcess.some(e => matchHost(e.preProcessDetail, detail.url, e.preProcessType) && ((method = e.preProcessMethod), true)))) {
         console.log('aaa')
 
         scripting
