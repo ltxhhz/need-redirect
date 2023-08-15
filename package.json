@@ -10,7 +10,9 @@
     "preview": "vite preview"
   },
   "dependencies": {
+    "fp-ts": "^2.16.1",
     "highlight.js": "^11.8.0",
+    "io-ts": "^2.2.20",
     "vue": "^3.3.4"
   },
   "devDependencies": {

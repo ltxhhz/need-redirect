@@ -1,4 +1,4 @@
-import { FilterType } from './../types.d'
+import { FilterType } from './../types'
 import type { PreProcessMethod, Profile } from '@/types'
 import * as preProcessFunc from './pre-process'
 const { webNavigation, storage, tabs, scripting } = chrome

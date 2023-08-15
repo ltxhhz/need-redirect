@@ -1,15 +1,15 @@
 <template>
   <n-config-provider :theme="lightMode ? lightTheme : darkTheme" :hljs="hljs">
-    <!-- <n-dialog-provider> -->
-    <n-message-provider>
-      <content v-model:theme-mode="themeMode" />
-    </n-message-provider>
-    <!-- </n-dialog-provider> -->
+    <n-dialog-provider>
+      <n-message-provider>
+        <content v-model:theme-mode="themeMode" />
+      </n-message-provider>
+    </n-dialog-provider>
   </n-config-provider>
 </template>
 
 <script setup lang="ts">
-import { NMessageProvider, NConfigProvider, lightTheme, darkTheme } from 'naive-ui'
+import { NMessageProvider, NConfigProvider, NDialogProvider, lightTheme, darkTheme } from 'naive-ui'
 import content from './content.vue'
 import { ref, watch } from 'vue';
 import hljs from 'highlight.js/lib/core'

@@ -92,12 +92,13 @@
         </div>
       </n-layout-content>
       <n-layout-footer ref="footer" bordered position="absolute">
-        <n-space justify="space-between" align="center" style="padding: 20px;">
+        <n-space align="center" style="padding: 20px;">
           <n-text v-if="selected.value == 'profile' && profiles[selected.index]" type="primary">
             生效次数 {{ profiles[selected.index].count }}
           </n-text>
           <template v-else-if="selected.value == 'setting' && selected.index == 0">
             <n-button @click.stop="copyProfiles" secondary>复制</n-button>
+            <n-button @click="importProfiles">导入</n-button>
           </template>
           <template v-else>
             footer
@@ -130,15 +131,16 @@
 </template>
 <script setup lang="ts">
 
-import { reactive, ref, toRaw, ComponentPublicInstance } from 'vue';
-import { NLayout, NLayoutHeader, NLayoutSider, NLayoutContent, NLayoutFooter, useMessage, NButton, NH2, NSpace, NText, NDivider, NList, NListItem, NModal, NRadioGroup, NRadio, NInput, NSwitch, NTooltip, NEmpty, NH3, NIcon, NPopconfirm } from 'naive-ui'
+import { reactive, ref, toRaw, ComponentPublicInstance, h } from 'vue';
+import { NLayout, NLayoutHeader, NLayoutSider, NLayoutContent, NLayoutFooter, useMessage, NButton, NH2, NSpace, NText, NDivider, NList, NListItem, NModal, NRadioGroup, NRadio, NInput, NSwitch, NTooltip, NEmpty, NH3, NIcon, NPopconfirm, useDialog } from 'naive-ui'
 import { Trash, Plus, /* Cog, */ Save } from '@vicons/fa'
 import profile from '@/components/profile.vue';
 import IAE from '@/components/importAndExport.vue';
 import type { ThemeMode } from './App.vue'
-import { Profile } from '@/types.ts';
+import { Profile, profilesType } from '@/types.ts';
 
 const message = useMessage()
+const dialog = useDialog()
 const { storage } = chrome
 const dev = import.meta.env.DEV
 const props = defineProps<{
@@ -263,8 +265,10 @@ function removeProfile(id: number) {
     profiles: toRaw(profiles)
   }).then(() => {
     message.success('删除成功')
-    selected.index = -1
-    selected.value = ''
+    if (selected.value == 'profile') {
+      selected.index = -1
+      selected.value = ''
+    }
   }).catch((e) => {
     console.error(e);
     message.error(`删除失败 ${e?.message}`)
@@ -294,6 +298,43 @@ function copyProfiles() {
       console.error(e);
       message.error('复制失败')
     })
+}
+
+function importProfiles() {
+  const str = ref('')
+  dialog.create({
+    content() {
+      return h(NInput, {
+        placeholder: '输入json字符串',
+        value: str.value,
+        type: 'textarea',
+        "onUpdate:value": (e) => {
+          str.value = e
+        }
+      })
+    },
+    title: '导入配置',
+    positiveText: '确定',
+    onPositiveClick() {
+      try {
+        const arr: Profile[] = JSON.parse(str.value)
+        if (profilesType.decode(arr)._tag == 'Right') {
+          storage.local.set({
+            profiles: arr.map(e => (e.count = 0, e))
+          }).then(() => {
+            message.success('导入成功')
+          })
+        } else {
+          message.error('导入失败，请检查')
+          return false
+        }
+      } catch (error) {
+        console.error(error);
+        message.error('导入失败，请检查')
+        return false
+      }
+    },
+  })
 }
 
 function test() {

@@ -19,5 +19,11 @@ chrome.storage.local.get(['profiles']).then(e => {
   console.log(toRaw(profiles));
 })
 
+chrome.storage.local.onChanged.addListener(changes => {
+  if (changes.profiles?.newValue) {
+    profiles.value = changes.profiles.newValue
+  }
+})
+
 </script>
 <style lang="less"></style>
