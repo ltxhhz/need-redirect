@@ -1,9 +1,11 @@
 <template>
-  <n-code :code="JSON.stringify(profiles, undefined, 2)" language="json" show-line-numbers />
+  <n-scrollbar>
+    <n-code :code="JSON.stringify(profiles, undefined, 2)" language="json" show-line-numbers />
+  </n-scrollbar>
 </template>
 <script setup lang="ts">
-import {  toRaw, ref } from "vue";
-import { NCode } from 'naive-ui'
+import { toRaw, ref } from "vue";
+import { NCode, NScrollbar } from 'naive-ui'
 import { Profile } from '@/types';
 
 import hljs from "highlight.js/lib/core";

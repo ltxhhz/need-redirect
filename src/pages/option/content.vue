@@ -11,11 +11,11 @@
             <template #prefix>
               <n-space align="center" item-style="line-height:0">
                 <n-icon>
-                  <cog />
+                  <save />
                 </n-icon>
               </n-space>
             </template>
-            <n-text>通用</n-text>
+            <n-text>导入/导出</n-text>
           </n-list-item>
         </n-list>
         <n-list clickable show-divider>
@@ -83,7 +83,8 @@
         <profile v-if="selected.value == 'profile'" :profile="profiles[selected.index]"
           @on-profile-change="onProfileChange">
         </profile>
-        <i-a-e v-else-if="selected.value == 'setting' && selected.index == 0"></i-a-e>
+        <i-a-e v-else-if="selected.value == 'setting' && selected.index == 0"
+          :style="{ height: `calc(100vh - ${footer?.$el?.offsetHeight}px - 24px * 2 - ${header?.$el?.offsetHeight}px)` }"></i-a-e>
         <div v-else
           :style="{ height: `calc(100vh - ${footer?.$el?.offsetHeight}px - 24px * 2 - ${header?.$el?.offsetHeight}px)` }"
           style="display: flex;align-items: center;justify-content: center;">
@@ -95,6 +96,9 @@
           <n-text v-if="selected.value == 'profile' && profiles[selected.index]" type="primary">
             生效次数 {{ profiles[selected.index].count }}
           </n-text>
+          <template v-else-if="selected.value == 'setting' && selected.index == 0">
+            <n-button @click.stop="copyProfiles" secondary>复制</n-button>
+          </template>
           <template v-else>
             footer
           </template>
@@ -128,7 +132,7 @@
 
 import { reactive, ref, toRaw, ComponentPublicInstance } from 'vue';
 import { NLayout, NLayoutHeader, NLayoutSider, NLayoutContent, NLayoutFooter, useMessage, NButton, NH2, NSpace, NText, NDivider, NList, NListItem, NModal, NRadioGroup, NRadio, NInput, NSwitch, NTooltip, NEmpty, NH3, NIcon, NPopconfirm } from 'naive-ui'
-import { Trash, Plus, Cog } from '@vicons/fa'
+import { Trash, Plus, /* Cog, */ Save } from '@vicons/fa'
 import profile from '@/components/profile.vue';
 import IAE from '@/components/importAndExport.vue';
 import type { ThemeMode } from './App.vue'
@@ -279,6 +283,17 @@ function changeTheme() {
     emits('update:themeMode', 'auto')
     message.success(`切换主题为 auto`)
   }
+}
+
+function copyProfiles() {
+  navigator.clipboard.writeText(JSON.stringify(toRaw(profiles)))
+    .then(() => {
+      message.success('复制成功')
+    })
+    .catch(e => {
+      console.error(e);
+      message.error('复制失败')
+    })
 }
 
 function test() {
