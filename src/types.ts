@@ -10,7 +10,8 @@ export const preProcess = t.type({
   // id: number
   preProcessType: filterType,
   preProcessDetail: t.string,
-  preProcessMethod: preProcessMethod
+  preProcessMethod: preProcessMethod,
+  preProcessSelector: t.string
 })
 export interface PreProcess extends t.TypeOf<typeof preProcess> {}
 

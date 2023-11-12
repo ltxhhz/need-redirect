@@ -230,7 +230,8 @@ function addProfile() {
         // id: 0,
         preProcessType: 'regexp',
         preProcessDetail: 'zhuanlan.example.com/p/.*',
-        preProcessMethod: 'replaceHref'
+        preProcessMethod: 'replaceHref',
+        preProcessSelector: ''
       }]
     }],
     count: 0,

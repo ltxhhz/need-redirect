@@ -42,11 +42,9 @@ storage.local.get(['profiles', 'enable']).then(e => {
       return
     }
     profiles.some((e, i) => {
-      let method: PreProcessMethod
+      let method: PreProcessMethod, cssSelector: string
 
-      if (e.filters.some(e => e.preProcess.some(e => matchHost(e.preProcessDetail, detail.url, e.preProcessType) && ((method = e.preProcessMethod), true)))) {
-        console.log('aaa')
-
+      if (e.filters.some(e => e.preProcess.some(e => matchHost(e.preProcessDetail, detail.url, e.preProcessType) && ((method = e.preProcessMethod), (cssSelector = e.preProcessSelector), true)))) {
         scripting
           .executeScript({
             target: {
@@ -54,7 +52,7 @@ storage.local.get(['profiles', 'enable']).then(e => {
               allFrames: true
             },
             world: 'MAIN',
-            args: [e.key], //todo 适配其他方法
+            args: [e.key, cssSelector!], //todo 适配其他方法
             func: preProcessFunc[method!]
           })
           .then(() => {

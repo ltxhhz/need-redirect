@@ -49,6 +49,8 @@
       <n-input placeholder="pattern" v-model:value="addProcessForm.preProcessDetail" @keyup.enter="addDomain"
         :status="statusVerify(addProcessForm.preProcessType, addProcessForm.preProcessDetail) ? 'success' : 'error'" />
       <n-select placeholder="预处理方法" :options="preProcessMethodOptions" v-model:value="addProcessForm.preProcessMethod" />
+      <n-input placeholder="css选择器" title="如果提供则只对匹配的元素及子元素做修改" type="textarea"
+        v-model:value="addProcessForm.preProcessSelector" />
     </n-space>
     <template #action>
       <n-button @click="addProcess"
@@ -65,7 +67,7 @@ import type { FilterType, Filter, Profile, PreProcessMethod, PreProcess } from '
 const props = defineProps<{
   profile: Profile
 }>()
-const profile = props.profile
+let profile = props.profile
 
 console.log(profile);
 
@@ -163,6 +165,27 @@ const columns: DataTableColumns<Filter> = [/* {
       })))
     },
   }, {
+    title: '预处理选择器',
+    key: 'preProcessSelector',
+    render(rowData, rowIndex) {
+      return h(NSpace, {
+        vertical: true,
+      }, () => rowData.preProcess.map((e, i) => {
+        const status = 'success'//statusVerify(e.preProcessType, e.preProcessSelector) ? 'success' : 'error'
+        return h(NInput, {
+          value: e.preProcessSelector,
+          status,
+          size: 'small',
+          placeholder: 'css选择器，一行一个',
+          title: '如果提供则只对匹配的元素及子元素做修改',
+          "onUpdate:value": (v: string) => {
+            profile.filters[rowIndex].preProcess[i].preProcessSelector = v
+            console.log('status', status)
+          }
+        })
+      }))
+    },
+  }, {
     title: '操作',
     key: 'actions',
     render(rowData, rowIndex) {
@@ -194,7 +217,8 @@ const preProcessMethodOptions: SelectOption[] = [{
 
 const tableData = ref<Filter[]>()
 
-watch(() => profile, (v) => {
+watch(() => props.profile, (v) => {
+  profile = v
   tableData.value = v.filters
 }, {
   deep: true,
@@ -226,7 +250,8 @@ const addDomainForm = reactive<{
   preProcess: [{
     preProcessType: Filter['type'] | undefined,
     preProcessDetail: string | undefined,
-    preProcessMethod: PreProcessMethod | undefined
+    preProcessMethod: PreProcessMethod | undefined,
+    preProcessSelector: string | undefined
   }],
 }>({
   type: 'hostWildcard',
@@ -234,7 +259,8 @@ const addDomainForm = reactive<{
   preProcess: [{
     preProcessType: undefined,
     preProcessDetail: undefined,
-    preProcessMethod: undefined
+    preProcessMethod: undefined,
+    preProcessSelector: undefined
   }]
 })
 
