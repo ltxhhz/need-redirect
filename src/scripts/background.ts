@@ -1,9 +1,15 @@
 import { FilterType } from './../types'
 import type { PreProcessMethod, Profile } from '@/types'
 import * as preProcessFunc from './pre-process'
+import { throttle } from 'lodash-es'
 const { webNavigation, storage, tabs, scripting } = chrome
 let profiles: Profile[]
 let enable = true
+
+const saveProfiles = throttle(() => {
+  storage.local.set({ profiles })
+}, 1e3)
+
 storage.local.get(['profiles', 'enable']).then(e => {
   profiles = e.profiles
   enable = e.enable
@@ -20,20 +26,25 @@ storage.local.get(['profiles', 'enable']).then(e => {
       console.log('已关闭')
       return
     }
-    profiles.some((e, i) => {
-      if (e.filters.some(e => matchHost(e.detail, detail.url, e.type))) {
-        if (e.type == 'searchParams') {
-          const value = new URL(detail.url).searchParams.get(e.key)
-          if (value) {
-            tabs.update(detail.tabId, {
-              url: value
-            })
-            countPlus(e, i)
-            return true
+    for (let i = 0; i < profiles.length; i++)
+      for1: {
+        const profile = profiles[i]
+        for (const filter of profile.filters) {
+          if (matchHost(filter.detail, detail.url, filter.type)) {
+            if (filter.getUrl.type == 'searchParams') {
+              const value = new URL(detail.url).searchParams.get(filter.getUrl.key)
+              if (value) {
+                tabs.update(detail.tabId, {
+                  url: value
+                })
+                filter.count += 1
+                saveProfiles()
+                break for1
+              }
+            }
           }
         }
       }
-    })
   })
   webNavigation.onCompleted.addListener(detail => {
     console.log(detail)
@@ -41,26 +52,31 @@ storage.local.get(['profiles', 'enable']).then(e => {
       console.log('已关闭')
       return
     }
-    profiles.some((e, i) => {
-      let method: PreProcessMethod, cssSelector: string
-
-      if (e.filters.some(e => e.preProcess.some(e => matchHost(e.preProcessDetail, detail.url, e.preProcessType) && ((method = e.preProcessMethod), (cssSelector = e.preProcessSelector), true)))) {
-        scripting
-          .executeScript({
-            target: {
-              tabId: detail.tabId,
-              allFrames: true
-            },
-            world: 'MAIN',
-            args: [e.key, cssSelector!], //todo 适配其他方法
-            func: preProcessFunc[method!]
-          })
-          .then(() => {
-            countPlus(e, i)
-          })
-        return true
+    for (const profile of profiles) {
+      for (const filter of profile.filters) {
+        for (const preProc of filter.preProcess) {
+          let method: PreProcessMethod, cssSelector: string | undefined
+          if (matchHost(preProc.preProcessDetail, detail.url, preProc.preProcessType) && preProc.preProcessMethod) {
+            method = preProc.preProcessMethod
+            cssSelector = preProc.preProcessSelector || ''
+            scripting
+              .executeScript({
+                target: {
+                  tabId: detail.tabId,
+                  allFrames: true
+                },
+                world: 'MAIN',
+                args: [filter.getUrl, cssSelector],
+                func: preProcessFunc[method!]
+              })
+              .then(() => {
+                filter.count += 1
+                saveProfiles()
+              })
+          }
+        }
       }
-    })
+    }
   })
 })
 
@@ -81,13 +97,4 @@ function matchHost(pattern: string | undefined, url: string, type?: FilterType) 
   } else {
     return new RegExp(pattern).test(url)
   }
-}
-
-function countPlus(profile: Profile, index: number) {
-  const arr = [...profiles]
-  profile.count++
-  arr[index] = profile
-  return storage.local.set({
-    profiles: arr
-  })
 }

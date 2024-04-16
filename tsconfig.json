@@ -13,6 +13,7 @@
     "isolatedModules": true,
     "noEmit": true,
     "jsx": "preserve",
+    "jsxImportSource": "vue",
 
     /* Linting */
     "strict": true,
@@ -21,8 +22,8 @@
     "noFallthroughCasesInSwitch": true,
     "paths": {
       "@/*":["./src/*"]
-    }
-    // "typeRoots": ["./node_modules/@types","./node_modules/naive-ui/volar.d.ts"]
+    },
+    // "typeRoots": ["./node_modules/@types","./node_modules/naive-ui/volar.d.ts"],
     // "types": ["@types/**/*","naive-ui/volar"]
   },
   "include": [
@@ -35,5 +36,8 @@
   ],
   "references": [{
     "path": "./tsconfig.node.json"
-  }]
+  }],
+  "vueCompilerOptions": {
+    "strictTemplates": false
+  }
 }
