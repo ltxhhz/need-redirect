@@ -27,7 +27,7 @@
   <n-flex style="margin: 10px 0">
     <n-button @click="showAddDomainModel(true)" type="primary">添加域名匹配</n-button>
   </n-flex>
-  <n-data-table class="main-table" :columns="columns" :data="tableData" :row-key="row => profile.name + ':' + row.id" />
+  <n-data-table class="main-table" :columns="columns" :data="tableData" :row-key="row => profileData.name + ':' + row.id" />
   <n-modal v-model:show="showAddDomainModelStatus" preset="dialog" title="添加配置">
     <n-flex vertical>
       <n-select placeholder="条件类型" :options="filterTypes" v-model:value="addDomainForm.type" />
@@ -39,7 +39,7 @@
       <n-flex :wrap="false" align="center">
         <n-input v-model:value="addDomainForm.getUrl.key" placeholder="获取参数的键" />
         <n-flex :wrap="false" align="center">
-          <n-text style="text-wrap: nowrap;">base64:</n-text>
+          <n-text style="text-wrap: nowrap">base64:</n-text>
           <n-switch v-model:value="addDomainForm.getUrl.base64" placeholder="是否是base64" />
         </n-flex>
       </n-flex>
@@ -88,21 +88,14 @@ import {
   NTooltip,
   NText
 } from 'naive-ui'
-import { h, ref, toRaw, watch, reactive } from 'vue'
+import { h, ref, toRaw, reactive, computed } from 'vue'
 import { type FilterType, type Filter, type Profile, type PreProcessMethod, type PreProcess, type GetUrl, getUrlType, GetUrlType } from '@/types'
 
-const props = defineProps<{
-  profile: Profile
-}>()
-let profile = props.profile
+const profileData = defineModel<Profile>({
+  required: true
+})
 
-console.log(profile)
-
-console.log(props)
-
-const emits = defineEmits<{
-  (e: 'onProfileChange', v: Profile): void
-}>()
+console.log(toRaw(profileData))
 
 const columns: DataTableColumns<Filter> = [
   {
@@ -138,7 +131,7 @@ const columns: DataTableColumns<Filter> = [
                       value={item.preProcessType}
                       size="small"
                       onUpdate:value={(v: Filter['type']) => {
-                        profile.filters[rowIndex].preProcess[index].preProcessType = v
+                        profileData.value.filters[rowIndex].preProcess[index].preProcessType = v
                       }}></NSelect>
                   </td>
                   <td>
@@ -148,7 +141,7 @@ const columns: DataTableColumns<Filter> = [
                       size="small"
                       placeholder="用来匹配带有跳转目标的url的页面的url"
                       onUpdate:value={(v: string) => {
-                        profile.filters[rowIndex].preProcess[index].preProcessDetail = v
+                        profileData.value.filters[rowIndex].preProcess[index].preProcessDetail = v
                       }}
                     />
                   </td>
@@ -158,7 +151,7 @@ const columns: DataTableColumns<Filter> = [
                       value={item.preProcessMethod}
                       size="small"
                       onUpdate:value={(v: PreProcessMethod) => {
-                        profile.filters[rowIndex].preProcess[index].preProcessMethod = v
+                        profileData.value.filters[rowIndex].preProcess[index].preProcessMethod = v
                       }}></NSelect>
                   </td>
                   <td>
@@ -170,7 +163,7 @@ const columns: DataTableColumns<Filter> = [
                       title="如果提供则只对匹配的元素及子元素做修改"
                       placeholder="用来匹配带有跳转目标的url的a元素，默认为 a[href]"
                       onUpdate:value={(v: string) => {
-                        profile.filters[rowIndex].preProcess[index].preProcessSelector = v
+                        profileData.value.filters[rowIndex].preProcess[index].preProcessSelector = v
                       }}
                     />
                   </td>
@@ -196,7 +189,7 @@ const columns: DataTableColumns<Filter> = [
         value: rowData.type,
         size: 'small',
         'onUpdate:value': (v: Filter['type']) => {
-          profile.filters[rowIndex].type = v
+          profileData.value.filters[rowIndex].type = v
         }
       })
     }
@@ -211,7 +204,7 @@ const columns: DataTableColumns<Filter> = [
         size: 'small',
         status,
         'onUpdate:value': (v: string) => {
-          profile.filters[rowIndex].detail = v
+          profileData.value.filters[rowIndex].detail = v
         }
       })
     }
@@ -225,7 +218,7 @@ const columns: DataTableColumns<Filter> = [
         value: rowData.getUrl.type,
         size: 'small',
         'onUpdate:value': (v: GetUrlType) => {
-          profile.filters[rowIndex].getUrl.type = v
+          profileData.value.filters[rowIndex].getUrl.type = v
         }
       })
     }
@@ -243,7 +236,7 @@ const columns: DataTableColumns<Filter> = [
         value: rowData.getUrl.key,
         size: 'small',
         'onUpdate:value': (v: string) => {
-          profile.filters[rowIndex].getUrl.key = v
+          profileData.value.filters[rowIndex].getUrl.key = v
         }
       })
     }
@@ -256,7 +249,7 @@ const columns: DataTableColumns<Filter> = [
         checked: rowData.getUrl.base64,
         size: 'small',
         'onUpdate:checked': (v: boolean) => {
-          profile.filters[rowIndex].getUrl.base64 = v
+          profileData.value.filters[rowIndex].getUrl.base64 = v
         }
       })
     }
@@ -309,30 +302,7 @@ const preProcessMethodOptions: SelectOption[] = [
   }
 ]
 
-const tableData = ref<Filter[]>()
-
-watch(
-  () => props.profile,
-  v => {
-    profile = v
-    tableData.value = v.filters
-  },
-  {
-    deep: true,
-    immediate: true
-  }
-)
-
-watch(
-  () => profile,
-  v => {
-    console.log('profile update')
-    emits('onProfileChange', toRaw(v))
-  },
-  {
-    deep: true
-  }
-)
+const tableData = computed(() => profileData.value.filters)
 
 const showAddDomainModelStatus = ref(false)
 const filterTypes: SelectOption[] = [
@@ -415,6 +385,8 @@ function showAddDomainModel(show: boolean = true) {
     addDomainForm.detail = ''
     addDomainForm.preProcess[0].preProcessDetail = addDomainForm.preProcess[0].preProcessType = undefined
     addDomainForm.preProcess[0].preProcessMethod = undefined
+    addDomainForm.getUrl.base64 = false
+    addDomainForm.getUrl.key = ''
   }
   showAddDomainModelStatus.value = show
 }
@@ -427,7 +399,7 @@ function showAddPrecessModel(show = true) {
 }
 
 function getAvailableId() {
-  const arr = profile.filters.map(e => e.id)
+  const arr = profileData.value.filters.map(e => e.id)
   for (let i = 0; i < arr.length; i++) {
     if (!arr.includes(i)) {
       return i
@@ -445,27 +417,27 @@ function addDomain() {
   if (!obj.preProcess[0]?.preProcessDetail || !obj.preProcess[0]?.preProcessMethod || !obj.preProcess[0]?.preProcessType) {
     obj.preProcess.length = 0
   }
-  profile.filters.push(obj)
+  profileData.value.filters.push(obj)
   showAddDomainModel(false)
 }
 function addProcess() {
-  profile.filters[addProcessIndex].preProcess.push({
+  profileData.value.filters[addProcessIndex].preProcess.push({
     ...(toRaw(addProcessForm) as PreProcess)
   })
   showAddPrecessModel(false)
 }
 
 function delDomain(index: number) {
-  for (let i = 0; i < profile.filters.length; i++) {
-    const host = profile.filters[i]
+  for (let i = 0; i < profileData.value.filters.length; i++) {
+    const host = profileData.value.filters[i]
     if (host.id == index) {
-      profile.filters.splice(i, 1)
+      profileData.value.filters.splice(i, 1)
       break
     }
   }
 }
 function removeProcess(_row: Filter, rowIndex: number, index: number) {
-  return profile.filters[rowIndex].preProcess.splice(index, 1)
+  return profileData.value.filters[rowIndex].preProcess.splice(index, 1)
 }
 </script>
 <style lang="less">

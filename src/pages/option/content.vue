@@ -26,7 +26,7 @@
             <n-text>
               {{ profile.name }}
             </n-text>
-            <template #suffix v-if="index !== 0 && profile.name !== '默认' && profile.name !== 'default'">
+            <template #suffix v-if="index !== 0 || (index === 0 && profile.name !== '默认' && profile.name !== 'default')">
               <n-popconfirm @positive-click="removeProfile(index)">
                 确定要删除吗
                 <template #trigger>
@@ -78,7 +78,7 @@
         </n-space>
       </n-layout-header>
       <n-layout-content content-style="padding: 24px;">
-        <profile v-if="selected.value == 'profile'" :profile="profiles[selected.index]" @on-profile-change="onProfileChange"> </profile>
+        <profile v-if="selected.value == 'profile'" v-model="profiles[selected.index]"> </profile>
         <i-a-e v-else-if="selected.value == 'setting' && selected.index == 0" :style="{ height: `calc(100vh - ${footer?.$el?.offsetHeight}px - 24px * 2 - ${header?.$el?.offsetHeight}px)` }"></i-a-e>
         <div v-else :style="{ height: `calc(100vh - ${footer?.$el?.offsetHeight}px - 24px * 2 - ${header?.$el?.offsetHeight}px)` }" style="display: flex; align-items: center; justify-content: center">
           <n-text depth="3" style="font-size: 100px; user-select: none">Need Redirect</n-text>
@@ -111,7 +111,7 @@
   </n-modal>
 </template>
 <script setup lang="ts">
-import { reactive, ref, toRaw, ComponentPublicInstance, h } from 'vue'
+import { reactive, ref, toRaw, ComponentPublicInstance, h, watch } from 'vue'
 import {
   NLayout,
   NLayoutHeader,
@@ -185,12 +185,27 @@ storage.local.onChanged.addListener(changes => {
   if (changes.profiles?.newValue) {
     if (!isEqual(changes.profiles.newValue, toRaw(profiles))) {
       profiles.length = 0
-      profiles.push(...changes.profiles.newValue)
+      profiles.splice(0, profiles.length, ...changes.profiles.newValue)
     }
   }
 })
 
-const saveProfiles = debounce(profiles => storage.local.set({ profiles }), 1e3)
+watch(
+  () => profiles,
+  v => {
+    console.log('profiles changed', v)
+    saveProfiles(toRaw(v))?.catch(e => {
+      console.error(e)
+      message.error(`保存失败 ${e?.message}`)
+    })
+  },
+  { deep: true }
+)
+
+const saveProfiles = debounce(profiles => {
+  console.log('save profiles', profiles)
+  return storage.local.set({ profiles })
+}, 1e3)
 
 function initAddModel() {
   profileName.value = profiles.length ? '' : '默认'
@@ -248,15 +263,6 @@ function addProfile() {
       message.error(`添加失败 ${e?.message}`)
     })
   showAddModel(false)
-}
-
-function onProfileChange(profile: Profile) {
-  console.log('onProfileChange', profile)
-  profiles[selected.index] = profile
-  saveProfiles(toRaw(profiles))!.catch(e => {
-    console.error(e)
-    message.error(`保存失败 ${e?.message}`)
-  })
 }
 
 function removeProfile(id: number) {
