@@ -42,4 +42,5 @@ export function replaceHref(getUrl: GetUrl, selector?: string) {
     } catch (error) {}
   })
   console.log(`已修改 ${num} 个链接`)
+  return num
 }

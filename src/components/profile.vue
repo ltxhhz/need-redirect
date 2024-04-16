@@ -36,6 +36,13 @@
         v-model:value="addDomainForm.detail"
         @keyup.enter="addDomain"
         :status="statusVerify(addDomainForm.type, addDomainForm.detail, true) ? 'success' : 'error'" />
+      <n-flex :wrap="false" align="center">
+        <n-input v-model:value="addDomainForm.getUrl.key" placeholder="获取参数的键" />
+        <n-flex :wrap="false" align="center">
+          <n-text style="text-wrap: nowrap;">base64:</n-text>
+          <n-switch v-model:value="addDomainForm.getUrl.base64" placeholder="是否是base64" />
+        </n-flex>
+      </n-flex>
       <n-select placeholder="预处理类型" :options="filterTypes" v-model:value="addDomainForm.preProcess[0].preProcessType" />
       <n-input
         placeholder="匹配模式 用来匹配带有跳转目标的url的页面的url"
@@ -430,7 +437,7 @@ function getAvailableId() {
 }
 
 function addDomain() {
-  const obj:Filter = {
+  const obj: Filter = {
     ...toRaw(addDomainForm),
     id: getAvailableId(),
     count: 0

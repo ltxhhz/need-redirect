@@ -136,7 +136,7 @@ import {
   NPopconfirm,
   useDialog
 } from 'naive-ui'
-import { isEqual, throttle } from 'lodash-es'
+import { debounce, isEqual } from 'lodash-es'
 import { Trash, Plus, /* Cog, */ Save } from '@vicons/fa'
 import profile from '@/components/profile.vue'
 import IAE from '@/components/importAndExport.vue'
@@ -190,7 +190,7 @@ storage.local.onChanged.addListener(changes => {
   }
 })
 
-const saveProfiles = throttle(profiles => storage.local.set({ profiles }), 1e3)
+const saveProfiles = debounce(profiles => storage.local.set({ profiles }), 1e3)
 
 function initAddModel() {
   profileName.value = profiles.length ? '' : '默认'

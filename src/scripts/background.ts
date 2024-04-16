@@ -38,6 +38,7 @@ storage.local.get(['profiles', 'enable']).then(e => {
                   url: value
                 })
                 filter.count += 1
+                chrome.action.setBadgeText({ text: '1', tabId: detail.tabId })
                 saveProfiles()
                 break for1
               }
@@ -69,9 +70,12 @@ storage.local.get(['profiles', 'enable']).then(e => {
                 args: [filter.getUrl, cssSelector],
                 func: preProcessFunc[method!]
               })
-              .then(() => {
-                filter.count += 1
-                saveProfiles()
+              .then(res => {
+                if (res[0].result) {
+                  filter.count += res[0].result
+                  chrome.action.setBadgeText({ text: res[0].result + '', tabId: detail.tabId })
+                  saveProfiles()
+                }
               })
           }
         }
