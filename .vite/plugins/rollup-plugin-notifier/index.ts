@@ -1,5 +1,5 @@
-import type { Plugin } from "vite"
-import { WebSocketServer, WebSocket } from "ws"
+import type { Plugin } from 'vite'
+import { WebSocketServer, WebSocket } from 'ws'
 
 export default function (): Plugin {
   let wss: WebSocketServer | undefined
@@ -27,12 +27,12 @@ export default function (): Plugin {
   return {
     name: 'build-notifier',
     apply(config, { command }) {
-      const canUse = command === 'build' && Boolean(config.build?.watch)
+      const canUse = command === 'build' && Boolean(process.argv.includes('--watch'))
       if (canUse) {
-        console.log('热重载服务端启动');
+        console.log('热重载服务端启动')
 
         wss = new WebSocketServer({ port: Number(process.env.build_notifier_port) || 14514 })
-        wss.on('connection', (client) => {
+        wss.on('connection', client => {
           ws = client
         })
       }
